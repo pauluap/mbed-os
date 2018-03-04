@@ -25,8 +25,8 @@ Thread greedy9;
 Thread greedy10;
 EventQueue client_queue;
 
-uint8_t xmit_data[100];
-uint8_t rcv_data[100];
+uint8_t xmit_data[200];
+uint8_t rcv_data[200];
 
 uint8_t rcvd;
 uint8_t xmtd;
