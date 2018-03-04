@@ -67,6 +67,8 @@
 /* Consider 10ms as the default timeout for sending/receving 1 byte */
 #define TIMEOUT_1_BYTE 10
 
+extern HAL_StatusTypeDef HAL_SPIEx_FlushRxFifo(SPI_HandleTypeDef*);
+
 void init_spi(spi_t *obj)
 {
     struct spi_s *spiobj = SPI_S(obj);

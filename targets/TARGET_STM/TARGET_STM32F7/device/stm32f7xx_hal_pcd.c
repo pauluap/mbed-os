@@ -1303,11 +1303,13 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
   int32_t len = 0;
   uint32_t len32b;
   uint32_t fifoemptymsk = 0;
+  uint32_t ulen;
 
   ep = &hpcd->IN_ep[epnum];
   len = ep->xfer_len - ep->xfer_count;
+  ulen = len;
 
-  if (len > ep->maxpacket)
+  if ((0 < len) && (ulen > ep->maxpacket))
   {
     len = ep->maxpacket;
   }
@@ -1321,8 +1323,9 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
   {
     /* Write the FIFO */
     len = ep->xfer_len - ep->xfer_count;
+    ulen = len;
 
-    if (len > ep->maxpacket)
+    if ((0 < len) && (ulen > ep->maxpacket))
     {
       len = ep->maxpacket;
     }
