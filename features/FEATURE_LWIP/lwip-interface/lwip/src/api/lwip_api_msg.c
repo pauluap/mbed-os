@@ -56,6 +56,8 @@
 
 #include <string.h>
 
+#include "saleae.h"
+
 /* netconns are polled once per second (e.g. continue write on memory error) */
 #define NETCONN_TCP_POLL_INTERVAL 2
 
@@ -548,14 +550,14 @@ pcb_new(struct api_msg *msg)
   enum lwip_ip_addr_type iptype = IPADDR_TYPE_V4;
 
   LWIP_ASSERT("pcb_new: pcb already allocated", msg->conn->pcb.tcp == NULL);
- 
+
 #if LWIP_IPV6 && LWIP_IPV4
   /* IPv6: Dual-stack by default, unless netconn_set_ipv6only() is called */
   if(NETCONNTYPE_ISIPV6(netconn_type(msg->conn))) {
     iptype = IPADDR_TYPE_ANY;
   }
 #endif
-  
+
   /* Allocate a PCB for this connection */
   switch(NETCONNTYPE_GROUP(msg->conn->type)) {
 #if LWIP_RAW
@@ -1490,6 +1492,7 @@ lwip_netconn_do_accepted(void *m)
 static err_t
 lwip_netconn_do_writemore(struct netconn *conn  WRITE_DELAYED_PARAM)
 {
+    proxy_D12(true);
   err_t err;
   const void *dataptr;
   u16_t len, available;
@@ -1560,6 +1563,17 @@ err_mem:
                  (tcp_sndqueuelen(conn->pcb.tcp) >= TCP_SNDQUEUELOWAT)) {
         /* The queued byte- or pbuf-count exceeds the configured low-water limit,
            let select mark this pcb as non-writable. */
+        proxy_D0(0 != (len & (1 << 0)));
+        proxy_D1(0 != (len & (1 << 1)));
+        proxy_D2(0 != (len & (1 << 2)));
+        proxy_D3(0 != (len & (1 << 3)));
+        proxy_D4(0 != (len & (1 << 4)));
+        proxy_D5(0 != (len & (1 << 5)));
+        proxy_D6(0 != (len & (1 << 6)));
+        proxy_D7(0 != (len & (1 << 7)));
+        proxy_D8(true);
+        __NOP();
+        proxy_D8(false);
         API_EVENT(conn, NETCONN_EVT_SENDMINUS, len);
       }
     }
@@ -1628,9 +1642,11 @@ err_mem:
   }
 #if LWIP_TCPIP_CORE_LOCKING
   else {
+    proxy_D12(false);
     return ERR_MEM;
   }
 #endif
+    proxy_D12(false);
   return ERR_OK;
 }
 #endif /* LWIP_TCP */

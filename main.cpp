@@ -55,13 +55,30 @@ mbed::DigitalOut out_D11(D4);
 mbed::DigitalOut out_D12(D3);
 mbed::DigitalOut out_D13(D2);
 
+extern "C" {
+void proxy_D0( const int set) {out_D0  = set; }
+void proxy_D1( const int set) {out_D1  = set; }
+void proxy_D2( const int set) {out_D2  = set; }
+void proxy_D3( const int set) {out_D3  = set; }
+void proxy_D4( const int set) {out_D4  = set; }
+void proxy_D5( const int set) {out_D5  = set; }
+void proxy_D6( const int set) {out_D6  = set; }
+void proxy_D7( const int set) {out_D7  = set; }
+void proxy_D8( const int set) {out_D8  = set; }
+void proxy_D9( const int set) {out_D9  = set; }
+void proxy_D10(const int set) {out_D10 = set; }
+void proxy_D11(const int set) {out_D11 = set; }
+void proxy_D12(const int set) {out_D12 = set; }
+void proxy_D13(const int set) {out_D13 = set; }
+}
+
 void DoTransmit()
 {
-    out_D5 = 0;
-    out_D6 = 1;
+    //out_D5 = 0;
+    //out_D6 = 1;
     if (socket_open)
     {
-        out_D1 = 1;
+        //out_D1 = 1;
         nsapi_size_or_error_t xmit;
 
         xmit_data[0] = rcv_data[0];
@@ -77,8 +94,12 @@ void DoTransmit()
         xmtd = 0;
         do {
             uint16_t desired = MB_RESP_SIZE - xmtd;
+
+            sock.set_blocking(true);
             xmit = sock.send(&xmit_data[xmtd], desired);
-            saleae.printf("%d = send(&[%u], %u)", xmit, xmtd, desired);
+            sock.set_blocking(false);
+
+            //saleae.printf("%d = send(&[%u], %u)", xmit, xmtd, desired);
             /* Transmit to completetion */
             if (NSAPI_ERROR_WOULD_BLOCK == xmit) { Thread::yield(); }
             else if (NSAPI_ERROR_OK >= xmit) {
@@ -94,27 +115,27 @@ void DoTransmit()
 
         /* clear transmitted, prep for the next one */
         xmtd = 0;
-        out_D1 = 0;
+        //out_D1 = 0;
     }
-    out_D6 = 0;
+    //out_D6 = 0;
 }
 
 void SocketSignalHandler()
 {
-    out_D3 = 0;
-    out_D4 = 1;
+    //out_D3 = 0;
+    //out_D4 = 1;
 
     if (socket_open)
     {
         nsapi_size_or_error_t rcv;
-        out_D0 = 1;
+        //out_D0 = 1;
 
         do {
             uint16_t desired;
             if (rcvd < 8) { desired = 8 - rcvd; }
             else          { desired = MB_QUERY_SIZE - rcvd; }
             rcv = sock.recv(&rcv_data[rcvd], desired);
-            saleae.printf("%d = recv(&[%u], %u)", rcv, rcvd, desired);
+            //saleae.printf("%d = recv(&[%u], %u)", rcv, rcvd, desired);
             /* permit block so that it doesn't get caught in the error condition */
             if (NSAPI_ERROR_WOULD_BLOCK == rcv) {}
             else if (NSAPI_ERROR_OK >= rcv) {
@@ -132,29 +153,29 @@ void SocketSignalHandler()
                 {
                     /* clear received, prep for the next one */
                     rcvd = 0;
-                    out_D5 = 1;
+                    //out_D5 = 1;
                     //Thread::wait(2);
                     client_queue.event(DoTransmit)();
                 }
             }
         } while (rcv != NSAPI_ERROR_WOULD_BLOCK);
-        out_D0 = 0;
+        //out_D0 = 0;
     }
 
-    out_D4 = 0;
+    //out_D4 = 0;
 }
 
 void Kicker()
 {
-    out_D2 = 1;
-    out_D3 = 1;
+    //out_D2 = 1;
+    //out_D3 = 1;
     client_queue.event(SocketSignalHandler)();
-    out_D2 = 0;
+    //out_D2 = 0;
 }
 
 void ConnectClient()
 {
-    out_D8 = 0;
+    //out_D8 = 0;
     sock.set_blocking(false);
     rcvd = 0;
     xmtd = 0;
@@ -164,15 +185,15 @@ void ConnectClient()
 
 void SrvSignal()
 {
-    out_D9 = 1;
-    out_D8 = 1;
+    //out_D9 = 1;
+    //out_D8 = 1;
     nsapi_error_t res = srv.accept(&sock);
     std::cout << rtos::Kernel::get_ms_count() << ": Accept attempt resulted in: " << res << "\n";
     if (NSAPI_ERROR_OK == res)
     {
         client_queue.call(ConnectClient);
     }
-    out_D9 = 0;
+    //out_D9 = 0;
 }
 
 void Greedy() { while (true) { __NOP(); } }
