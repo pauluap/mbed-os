@@ -348,11 +348,12 @@ static void _eth_arch_rx_task(void *arg)
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
         p = _eth_arch_low_level_input(netif);
-        if (p != NULL) {
+        while (p != NULL) {
             if (netif->input(p, netif) != ERR_OK) {
                 pbuf_free(p);
                 p = NULL;
             }
+            p = _eth_arch_low_level_input(netif);
         }
     }
 }
