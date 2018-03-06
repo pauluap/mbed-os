@@ -193,6 +193,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
             errval = ERR_USE;
             goto error;
         }
+        __DMB();
 
         /* Get bytes in current lwIP buffer */
         byteslefttocopy = q->len;
@@ -211,6 +212,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
                 errval = ERR_USE;
                 goto error;
             }
+            __DMB();
 
             buffer = (uint8_t*)(DmaTxDesc->Buffer1Addr);
 
@@ -313,6 +315,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
     /* Set Own bit in Rx descriptors: gives the buffers back to DMA */
     for (i = 0; i < EthHandle.RxFrameInfos.SegCount; i++) {
+        __DMB();
         dmarxdesc->Status |= ETH_DMARXDESC_OWN;
         dmarxdesc = (ETH_DMADescTypeDef*)(dmarxdesc->Buffer2NextDescAddr);
     }
