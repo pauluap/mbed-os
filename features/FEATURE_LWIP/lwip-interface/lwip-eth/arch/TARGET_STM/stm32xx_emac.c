@@ -18,7 +18,7 @@
 #define PHY_TASK_WAIT           (200)
 #define ETH_ARCH_PHY_ADDRESS    (0x00)
 
-ETH_HandleTypeDef EthHandle;
+__ALIGN_BEGIN ETH_HandleTypeDef EthHandle __ALIGN_END;
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
@@ -40,8 +40,8 @@ __ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethe
 #endif
 __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
 
-static sys_sem_t rx_ready_sem;    /* receive ready semaphore */
-static sys_mutex_t tx_lock_mutex;
+static __ALIGN_BEGIN sys_sem_t rx_ready_sem __ALIGN_END;    /* receive ready semaphore */
+static __ALIGN_BEGIN sys_mutex_t tx_lock_mutex __ALIGN_END;
 
 /* function */
 static void _eth_arch_rx_task(void *arg);

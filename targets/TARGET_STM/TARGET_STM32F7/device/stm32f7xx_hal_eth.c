@@ -559,6 +559,7 @@ HAL_StatusTypeDef HAL_ETH_DMARxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
     /* Set Own bit of the Rx descriptor Status */
     DMARxDesc->Status = ETH_DMARXDESC_OWN;
     
+    __DMB();
     /* Set Buffer1 size and Second Address Chained bit */
     DMARxDesc->ControlBufferSize = ETH_DMARXDESC_RCH | ETH_RX_BUF_SIZE;  
     
@@ -1982,6 +1983,7 @@ static void ETH_MACReceptionDisable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMATransmissionEnable(ETH_HandleTypeDef *heth)
 {
+  __DMB();
   /* Enable the DMA transmission */
   (heth->Instance)->DMAOMR |= ETH_DMAOMR_ST;  
 }
@@ -1994,6 +1996,7 @@ static void ETH_DMATransmissionEnable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMATransmissionDisable(ETH_HandleTypeDef *heth)
 { 
+  __DMB();
   /* Disable the DMA transmission */
   (heth->Instance)->DMAOMR &= ~ETH_DMAOMR_ST;
 }
@@ -2006,6 +2009,7 @@ static void ETH_DMATransmissionDisable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMAReceptionEnable(ETH_HandleTypeDef *heth)
 {  
+  __DMB();
   /* Enable the DMA reception */
   (heth->Instance)->DMAOMR |= ETH_DMAOMR_SR;  
 }
@@ -2018,6 +2022,7 @@ static void ETH_DMAReceptionEnable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMAReceptionDisable(ETH_HandleTypeDef *heth)
 { 
+  __DMB();
   /* Disable the DMA reception */
   (heth->Instance)->DMAOMR &= ~ETH_DMAOMR_SR;
 }
