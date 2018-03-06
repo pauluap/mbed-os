@@ -193,6 +193,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
             errval = ERR_USE;
             goto error;
         }
+        __DMB();
 
         /* Get bytes in current lwIP buffer */
         byteslefttocopy = q->len;
@@ -211,6 +212,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
                 errval = ERR_USE;
                 goto error;
             }
+            __DMB();
 
             buffer = (uint8_t*)(DmaTxDesc->Buffer1Addr);
 
@@ -233,6 +235,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
 
 error:
 
+    __DMB();
     /* When Transmit Underflow flag is set, clear it and issue a Transmit Poll Demand to resume transmission */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_TUS) != (uint32_t)RESET) {
         /* Clear TUS ETHERNET DMA flag */
@@ -270,7 +273,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
 
     /* get received frame */
-    if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
+    if (HAL_ETH_GetReceivedFrame_IT(&EthHandle) != HAL_OK)
         return NULL;
 
     /* Obtain the size of the packet and put it into the "len" variable. */
@@ -313,13 +316,16 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
     /* Set Own bit in Rx descriptors: gives the buffers back to DMA */
     for (i = 0; i < EthHandle.RxFrameInfos.SegCount; i++) {
+        __DMB();
         dmarxdesc->Status |= ETH_DMARXDESC_OWN;
+        __DMB();
         dmarxdesc = (ETH_DMADescTypeDef*)(dmarxdesc->Buffer2NextDescAddr);
     }
 
     /* Clear Segment_Count */
     EthHandle.RxFrameInfos.SegCount = 0;
 
+    __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
         /* Clear RBUS ETHERNET DMA flag */
@@ -343,11 +349,12 @@ static void _eth_arch_rx_task(void *arg)
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
         p = _eth_arch_low_level_input(netif);
-        if (p != NULL) {
+        while (p != NULL) {
             if (netif->input(p, netif) != ERR_OK) {
                 pbuf_free(p);
                 p = NULL;
             }
+            p = _eth_arch_low_level_input(netif);
         }
     }
 }
