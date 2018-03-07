@@ -316,8 +316,9 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
     /* Set Own bit in Rx descriptors: gives the buffers back to DMA */
     for (i = 0; i < EthHandle.RxFrameInfos.SegCount; i++) {
-        dmarxdesc->Status |= ETH_DMARXDESC_OWN;
         dmarxdesc = (ETH_DMADescTypeDef*)(dmarxdesc->Buffer2NextDescAddr);
+        __DMB();
+        dmarxdesc->Status |= ETH_DMARXDESC_OWN;
     }
 
     /* Clear Segment_Count */
