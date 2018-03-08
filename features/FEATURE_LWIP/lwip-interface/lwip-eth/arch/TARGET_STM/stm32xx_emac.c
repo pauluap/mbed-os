@@ -1,3 +1,4 @@
+#include "saleae.h"
 #include "lwip/opt.h"
 
 #include "netif/etharp.h"
@@ -338,16 +339,24 @@ static void _eth_arch_rx_task(void *arg)
 
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
+        proxy_D0(1);
         /* get received frame */
         while (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK) {
+            pulse_D1();
             p = _eth_arch_low_level_input(netif);
             if (p != NULL) {
+                pulse_D2();
                 if (netif->input(p, netif) != ERR_OK) {
                     pbuf_free(p);
                     p = NULL;
                 }
             }
+            else
+            {
+                pulse_D3();
+            }
         }
+        proxy_D0(0);
     }
 }
 
