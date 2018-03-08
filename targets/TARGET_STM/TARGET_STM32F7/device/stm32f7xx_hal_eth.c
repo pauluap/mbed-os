@@ -489,9 +489,16 @@ HAL_StatusTypeDef HAL_ETH_DMATxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
     /* Get the pointer on the ith member of the Tx Desc list */
     dmatxdesc = DMATxDescTab + i;
     
+    if(i < (TxBuffCount-1))
+    {
     /* Set Second Address Chained bit */
-    dmatxdesc->Status = ETH_DMATXDESC_TCH;  
-    
+    dmatxdesc->Status = ETH_DMATXDESC_TCH;
+    }
+    else
+    {
+    dmatxdesc->Status = ETH_DMATXDESC_TER;
+    }
+
     /* Set Buffer1 address pointer */
     dmatxdesc->Buffer1Addr = (uint32_t)(&TxBuff[i*ETH_TX_BUF_SIZE]);
     
@@ -510,7 +517,7 @@ HAL_StatusTypeDef HAL_ETH_DMATxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
     else
     {
       /* For last descriptor, set next descriptor address register equal to the first descriptor base address */ 
-      dmatxdesc->Buffer2NextDescAddr = (uint32_t) DMATxDescTab;  
+      //dmatxdesc->Buffer2NextDescAddr = (uint32_t) DMATxDescTab;
     }
   }
   
