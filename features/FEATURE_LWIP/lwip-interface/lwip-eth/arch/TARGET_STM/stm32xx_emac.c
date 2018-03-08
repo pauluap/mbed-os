@@ -193,6 +193,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
             errval = ERR_USE;
             goto error;
         }
+        __DMB();
 
         /* Get bytes in current lwIP buffer */
         byteslefttocopy = q->len;
@@ -211,6 +212,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
                 errval = ERR_USE;
                 goto error;
             }
+            __DMB();
 
             buffer = (uint8_t*)(DmaTxDesc->Buffer1Addr);
 
@@ -233,6 +235,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
 
 error:
 
+    __DMB();
     /* When Transmit Underflow flag is set, clear it and issue a Transmit Poll Demand to resume transmission */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_TUS) != (uint32_t)RESET) {
         /* Clear TUS ETHERNET DMA flag */
@@ -268,10 +271,6 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     uint32_t byteslefttocopy = 0;
     uint32_t i = 0;
 
-
-    /* get received frame */
-    if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
-        return NULL;
 
     /* Obtain the size of the packet and put it into the "len" variable. */
     len = EthHandle.RxFrameInfos.length;
@@ -320,6 +319,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     /* Clear Segment_Count */
     EthHandle.RxFrameInfos.SegCount = 0;
 
+    __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
         /* Clear RBUS ETHERNET DMA flag */
@@ -342,11 +342,14 @@ static void _eth_arch_rx_task(void *arg)
 
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
-        p = _eth_arch_low_level_input(netif);
-        if (p != NULL) {
-            if (netif->input(p, netif) != ERR_OK) {
-                pbuf_free(p);
-                p = NULL;
+        /* get received frame */
+        while (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK) {
+            p = _eth_arch_low_level_input(netif);
+            if (p != NULL) {
+                if (netif->input(p, netif) != ERR_OK) {
+                    pbuf_free(p);
+                    p = NULL;
+                }
             }
         }
     }
