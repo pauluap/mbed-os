@@ -345,7 +345,7 @@ static void _eth_arch_rx_task(void *arg)
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
         /* get received frame */
-        while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK) {
+        while (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK) {
             p = _eth_arch_low_level_input(netif);
             if (p != NULL) {
                 if (netif->input(p, netif) != ERR_OK) {
