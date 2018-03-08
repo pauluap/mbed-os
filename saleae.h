@@ -1,6 +1,8 @@
 #ifndef SALEAE
 #define SALEAE
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,6 +36,8 @@ void pulse_D10();
 void pulse_D11();
 void pulse_D12();
 void pulse_D13();
+
+void write_u32(const uint32_t value);
 
 #ifdef __cplusplus
 }

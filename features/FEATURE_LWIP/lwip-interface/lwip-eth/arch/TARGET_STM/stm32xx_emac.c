@@ -7,6 +7,7 @@
 #include <string.h>
 #include "cmsis_os2.h"
 #include "mbed_interface.h"
+#include "wait_api.h"
 
 // Check for LWIP having Ethernet enabled
 #if LWIP_ARP || LWIP_ETHERNET
@@ -340,9 +341,25 @@ static void _eth_arch_rx_task(void *arg)
 {
     struct netif   *netif = (struct netif*)arg;
     struct pbuf    *p;
+    uint32_t wait_time;
 
     while (1) {
-        sys_arch_sem_wait(&rx_ready_sem, 0);
+        wait_time = sys_arch_sem_wait(&rx_ready_sem, 1000);
+        if (900 <= wait_time)
+        {
+            uint32_t dmasr = (EthHandle.Instance)->DMASR;
+            write_u32(dmasr);
+
+            if (dmasr == 0x680484)
+            {
+                uint i;
+                for (i = 0; i < ETH_RXBUFNB; i++)
+                {
+                    write_u32(EthHandle.RxDesc->Status);
+                }
+                EthHandle.Instance->DMARPDR = 0;
+            }
+        }
         proxy_D0(1);
         /* get received frame */
         while (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK) {
@@ -505,8 +522,8 @@ err_t eth_arch_enetif_init(struct netif *netif)
     sys_mutex_new(&tx_lock_mutex);
 
     /* task */
-    sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
-    sys_thread_new("stm32_emac_phy_thread", _eth_arch_phy_task, netif, DEFAULT_THREAD_STACKSIZE, PHY_TASK_PRI);
+    sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, 8*DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
+    sys_thread_new("stm32_emac_phy_thread", _eth_arch_phy_task, netif, 8*DEFAULT_THREAD_STACKSIZE, PHY_TASK_PRI);
 
     /* initialize the hardware */
     _eth_arch_low_level_init(netif);

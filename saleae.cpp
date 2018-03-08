@@ -2,9 +2,6 @@
 #include "mbed.h"
 
 #include "DigitalOut.h"
-#include "EthernetInterface.h"
-#include "Kernel.h"
-#include "Thread.h"
 #include "Serial.h"
 
 mbed::Serial saleae(D1, D0, 1843200);
@@ -58,5 +55,7 @@ void pulse_D10() { out_D10 = true; __NOP(); out_D10 = false; }
 void pulse_D11() { out_D11 = true; __NOP(); out_D11 = false; }
 void pulse_D12() { out_D12 = true; __NOP(); out_D12 = false; }
 void pulse_D13() { out_D13 = true; __NOP(); out_D13 = false; }
+
+void write_u32(const uint32_t value) { saleae.printf("0x%08X", value); }
 }
 
