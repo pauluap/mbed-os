@@ -559,6 +559,8 @@ HAL_StatusTypeDef HAL_ETH_DMARxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
     /* Set Own bit of the Rx descriptor Status */
     DMARxDesc->Status = ETH_DMARXDESC_OWN;
     
+
+    __DMB();
     /* Set Buffer1 size and Second Address Chained bit */
     DMARxDesc->ControlBufferSize = ETH_DMARXDESC_RCH | ETH_RX_BUF_SIZE;  
     
@@ -803,6 +805,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame(ETH_HandleTypeDef *heth)
   /* (((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET) && ((heth->RxDesc->Status & ETH_DMARXDESC_LS) != (uint32_t)RESET)) */
   if(((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET))
   {
+    __DMB();
     /* Check if last segment */
     if(((heth->RxDesc->Status & ETH_DMARXDESC_LS) != (uint32_t)RESET)) 
     {
@@ -882,6 +885,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   /* Scan descriptors owned by CPU */
   while (((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET) && (descriptorscancounter < ETH_RXBUFNB))
   {
+    __DMB();
     /* Just for security */
     descriptorscancounter++;
     
@@ -956,41 +960,34 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   */
 void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 {
+  /* Clear the interrupt flags */
+  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
+
   /* Frame received */
-  if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_R)) 
+  if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_R))
   {
-    /* Receive complete callback */
-    HAL_ETH_RxCpltCallback(heth);
-    
      /* Clear the Eth DMA Rx IT pending bits */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_R);
 
+    /* Receive complete callback */
+    HAL_ETH_RxCpltCallback(heth);
+
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-    
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
-
   }
   /* Frame transmitted */
-  else if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_T)) 
+  else if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_T))
   {
-    /* Transfer complete callback */
-    HAL_ETH_TxCpltCallback(heth);
-    
     /* Clear the Eth DMA Tx IT pending bits */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_T);
 
+    /* Transfer complete callback */
+    HAL_ETH_TxCpltCallback(heth);
+
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-    
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
   }
-  
-  /* Clear the interrupt flags */
-  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
-  
+
   /* ETH DMA Error */
   if(__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_AIS))
   {
@@ -999,13 +996,13 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 
     /* Clear the interrupt flags */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_FLAG_AIS);
-  
+
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-    
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
   }
+
+  /* Process Unlocked */
+  __HAL_UNLOCK(heth);
 }
 
 /**
@@ -1234,6 +1231,7 @@ HAL_StatusTypeDef HAL_ETH_WritePHYRegister(ETH_HandleTypeDef *heth, uint16_t PHY
   */
 HAL_StatusTypeDef HAL_ETH_Start(ETH_HandleTypeDef *heth)
 {  
+  __DMB();
   /* Process Locked */
   __HAL_LOCK(heth);
   
@@ -1979,6 +1977,7 @@ static void ETH_MACReceptionDisable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMATransmissionEnable(ETH_HandleTypeDef *heth)
 {
+  __DMB();
   /* Enable the DMA transmission */
   (heth->Instance)->DMAOMR |= ETH_DMAOMR_ST;  
 }
@@ -1991,6 +1990,7 @@ static void ETH_DMATransmissionEnable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMATransmissionDisable(ETH_HandleTypeDef *heth)
 { 
+  __DMB();
   /* Disable the DMA transmission */
   (heth->Instance)->DMAOMR &= ~ETH_DMAOMR_ST;
 }
@@ -2003,6 +2003,7 @@ static void ETH_DMATransmissionDisable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMAReceptionEnable(ETH_HandleTypeDef *heth)
 {  
+  __DMB();
   /* Enable the DMA reception */
   (heth->Instance)->DMAOMR |= ETH_DMAOMR_SR;  
 }
@@ -2015,6 +2016,7 @@ static void ETH_DMAReceptionEnable(ETH_HandleTypeDef *heth)
   */
 static void ETH_DMAReceptionDisable(ETH_HandleTypeDef *heth)
 { 
+  __DMB();
   /* Disable the DMA reception */
   (heth->Instance)->DMAOMR &= ~ETH_DMAOMR_SR;
 }
