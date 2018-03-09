@@ -21,6 +21,6 @@
 
 #define LWIP_TRANSPORT_ETHERNET       1
 
-#define MEM_SIZE                      (1600 * 64)
+#define MEM_SIZE                      (1600 * 18)
 
 #endif

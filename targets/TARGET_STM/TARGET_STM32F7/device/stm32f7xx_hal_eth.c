@@ -969,9 +969,6 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   */
 void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 {
-  /* Clear the interrupt flags */
-  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
-
   /* Frame received */
   if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_R))
   {
@@ -984,8 +981,9 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
   }
+
   /* Frame transmitted */
-  else if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_T))
+  if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_T))
   {
     /* Clear the Eth DMA Tx IT pending bits */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_T);
@@ -996,6 +994,9 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
   }
+
+  /* Clear the interrupt flags */
+  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
 
   /* ETH DMA Error */
   if(__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_AIS))

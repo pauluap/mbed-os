@@ -344,6 +344,7 @@ static void _eth_arch_rx_task(void *arg)
 
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
+        sys_mutex_lock(&tx_lock_mutex);
         /* get received frame */
         while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK) {
             p = _eth_arch_low_level_input(netif);
@@ -354,6 +355,7 @@ static void _eth_arch_rx_task(void *arg)
                 }
             }
         }
+        sys_mutex_unlock(&tx_lock_mutex);
     }
 }
 
