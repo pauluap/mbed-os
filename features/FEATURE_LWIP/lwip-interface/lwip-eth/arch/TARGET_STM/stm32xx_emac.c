@@ -23,22 +23,22 @@ ETH_HandleTypeDef EthHandle;
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __ALIGN_END; /* Ethernet Rx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __attribute__ ((aligned (16))); /* Ethernet Rx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __ALIGN_END; /* Ethernet Tx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __attribute__ ((aligned (16))); /* Ethernet Tx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethernet Receive Buffer */
+__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__ ((aligned (16))); /* Ethernet Receive Buffer */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
+__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__ ((aligned (16))); /* Ethernet Transmit Buffer */
 
 static sys_sem_t rx_ready_sem;    /* receive ready semaphore */
 static sys_mutex_t tx_lock_mutex;
@@ -345,7 +345,7 @@ static void _eth_arch_rx_task(void *arg)
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
         /* get received frame */
-        while (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK) {
+        while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK) {
             p = _eth_arch_low_level_input(netif);
             if (p != NULL) {
                 if (netif->input(p, netif) != ERR_OK) {

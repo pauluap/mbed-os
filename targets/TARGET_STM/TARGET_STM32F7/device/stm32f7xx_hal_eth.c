@@ -969,40 +969,33 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   */
 void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 {
+  /* Clear the interrupt flags */
+  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
+
   /* Frame received */
   if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_R))
   {
-    /* Receive complete callback */
-    HAL_ETH_RxCpltCallback(heth);
-
      /* Clear the Eth DMA Rx IT pending bits */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_R);
 
+    /* Receive complete callback */
+    HAL_ETH_RxCpltCallback(heth);
+
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
-
   }
   /* Frame transmitted */
   else if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_T))
   {
-    /* Transfer complete callback */
-    HAL_ETH_TxCpltCallback(heth);
-
     /* Clear the Eth DMA Tx IT pending bits */
     __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_T);
 
+    /* Transfer complete callback */
+    HAL_ETH_TxCpltCallback(heth);
+
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
   }
-
-  /* Clear the interrupt flags */
-  __HAL_ETH_DMA_CLEAR_IT(heth, ETH_DMA_IT_NIS);
 
   /* ETH DMA Error */
   if(__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_AIS))
@@ -1015,10 +1008,10 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
-
-    /* Process Unlocked */
-    __HAL_UNLOCK(heth);
   }
+
+  /* Process Unlocked */
+  __HAL_UNLOCK(heth);
 }
 
 /**
