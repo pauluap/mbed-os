@@ -54,7 +54,7 @@
         },
         "socket-max": {
             "help": "Maximum number of open TCPServer, TCPSocket and UDPSocket instances allowed, including one used internally for DNS.  Each requires 236 bytes of pre-allocated RAM",
-            "value": 4
+            "value": 10
         },
         "tcp-enabled": {
             "help": "Enable TCP",
@@ -62,15 +62,15 @@
         },
         "tcp-server-max": {
             "help": "Maximum number of open TCPServer instances allowed.  Each requires 72 bytes of pre-allocated RAM",
-            "value": 4
+            "value": 10
         },
         "tcp-socket-max": {
             "help": "Maximum number of open TCPSocket instances allowed.  Each requires 196 bytes of pre-allocated RAM",
-            "value": 4
+            "value": 10
         },
         "udp-socket-max": {
             "help": "Maximum number of open UDPSocket instances allowed, including one used internally for DNS.  Each requires 84 bytes of pre-allocated RAM",
-            "value": 4
+            "value": 10
         },
         "pbuf-pool-size": {
             "help": "Number of pbufs in pool - usually used for received packets, so this determines how much data can be buffered between reception and the application reading. If a driver uses PBUF_RAM for reception, less pool may be needed. Current default (used if null here) is set to 5 in lwipopts.h, unless overridden by target Ethernet drivers.",
