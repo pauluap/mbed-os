@@ -803,6 +803,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame(ETH_HandleTypeDef *heth)
   /* (((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET) && ((heth->RxDesc->Status & ETH_DMARXDESC_LS) != (uint32_t)RESET)) */
   if(((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET))
   {
+    __DMB();
     /* Check if last segment */
     if(((heth->RxDesc->Status & ETH_DMARXDESC_LS) != (uint32_t)RESET)) 
     {
@@ -882,6 +883,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   /* Scan descriptors owned by CPU */
   while (((heth->RxDesc->Status & ETH_DMARXDESC_OWN) == (uint32_t)RESET) && (descriptorscancounter < ETH_RXBUFNB))
   {
+    __DMB();
     /* Just for security */
     descriptorscancounter++;
     
@@ -1258,6 +1260,9 @@ HAL_StatusTypeDef HAL_ETH_Start(ETH_HandleTypeDef *heth)
   /* Set the ETH state to READY*/
   heth->State= HAL_ETH_STATE_READY;
   
+  /* force synchronization before DMA release */
+  __DMB();
+
   /* Process Unlocked */
   __HAL_UNLOCK(heth);
   
