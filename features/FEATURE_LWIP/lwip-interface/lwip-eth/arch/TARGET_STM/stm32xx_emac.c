@@ -324,14 +324,6 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     uint32_t byteslefttocopy = 0;
     uint32_t i = 0;
 
-
-    /* get received frame */
-    if (HAL_ETH_GetReceivedFrame_IT(&EthHandle) != HAL_OK)
-    {
-        dip_D3();
-        return NULL;
-    }
-
     /* Obtain the size of the packet and put it into the "len" variable. */
     len = EthHandle.RxFrameInfos.length;
     buffer = (uint8_t*)EthHandle.RxFrameInfos.buffer;
@@ -429,19 +421,15 @@ static void _eth_arch_rx_task(void *arg)
 
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
-        proxy_D11(1);
-        p = _eth_arch_low_level_input(netif);
-        if (p != NULL) {
-            if (netif->input(p, netif) != ERR_OK) {
-                pbuf_free(p);
-                p = NULL;
+        while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK) {
+            p = _eth_arch_low_level_input(netif);
+            if (p != NULL) {
+                if (netif->input(p, netif) != ERR_OK) {
+                    pbuf_free(p);
+                    p = NULL;
+                }
             }
         }
-        if ((0 == osSemaphoreGetCount(rx_ready_sem.id)) && (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK))
-        {
-            dip_D12();
-        }
-        proxy_D11(0);
     }
 }
 
