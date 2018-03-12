@@ -270,7 +270,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
 
     /* get received frame */
-    if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
+    if (HAL_ETH_GetReceivedFrame_IT(&EthHandle) != HAL_OK)
         return NULL;
 
     /* Obtain the size of the packet and put it into the "len" variable. */
