@@ -221,7 +221,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
       heth->State= HAL_ETH_STATE_TIMEOUT;
   
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
+      __HAL_INSTRUMENT_UNLOCK(heth);
     
       /* Note: The SWR is not performed if the ETH_RX_CLK or the ETH_TX_CLK are  
          not available, please check your external PHY or the IO configuration */
@@ -311,7 +311,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
         heth->State= HAL_ETH_STATE_READY;
   
         /* Process Unlocked */
-        __HAL_UNLOCK(heth);
+        __HAL_INSTRUMENT_UNLOCK(heth);
     
         return HAL_TIMEOUT;
       }
@@ -354,7 +354,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
         heth->State= HAL_ETH_STATE_READY;
   
         /* Process Unlocked */
-        __HAL_UNLOCK(heth);
+        __HAL_INSTRUMENT_UNLOCK(heth);
     
         return HAL_TIMEOUT;
       }
@@ -455,7 +455,7 @@ HAL_StatusTypeDef HAL_ETH_DeInit(ETH_HandleTypeDef *heth)
   heth->State= HAL_ETH_STATE_RESET;
 
   /* Release Lock */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
 
   /* Return function status */
   return HAL_OK;
@@ -476,7 +476,7 @@ HAL_StatusTypeDef HAL_ETH_DMATxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
   ETH_DMADescTypeDef *dmatxdesc;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -522,7 +522,7 @@ HAL_StatusTypeDef HAL_ETH_DMATxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
   heth->State= HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;
@@ -543,7 +543,7 @@ HAL_StatusTypeDef HAL_ETH_DMARxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
   ETH_DMADescTypeDef *DMARxDesc;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -592,7 +592,7 @@ HAL_StatusTypeDef HAL_ETH_DMARxDescListInit(ETH_HandleTypeDef *heth, ETH_DMADesc
   heth->State= HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;
@@ -669,7 +669,7 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
   uint32_t bufcount = 0, size = 0, i = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -680,7 +680,7 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
     heth->State = HAL_ETH_STATE_READY;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    __HAL_INSTRUMENT_UNLOCK(heth);
     
     return  HAL_ERROR;                                    
   }  
@@ -692,7 +692,7 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
     heth->State = HAL_ETH_STATE_BUSY_TX;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    __HAL_INSTRUMENT_UNLOCK(heth);
     
     return HAL_ERROR;
   }
@@ -778,7 +778,7 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;
@@ -795,7 +795,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame(ETH_HandleTypeDef *heth)
   uint32_t framelength = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Check the ETH state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -832,7 +832,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame(ETH_HandleTypeDef *heth)
       heth->State = HAL_ETH_STATE_READY;
       
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
+      __HAL_INSTRUMENT_UNLOCK(heth);
       
       /* Return function status */
       return HAL_OK;
@@ -859,7 +859,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame(ETH_HandleTypeDef *heth)
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_ERROR;
@@ -876,7 +876,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   uint32_t descriptorscancounter = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set ETH HAL State to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -934,7 +934,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
       heth->State = HAL_ETH_STATE_READY;
       
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
+      __HAL_INSTRUMENT_UNLOCK(heth);
   
       /* Return function status */
       return HAL_OK;
@@ -945,7 +945,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_ERROR;
@@ -972,8 +972,12 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     /* Set HAL State to Ready */
     heth->State = HAL_ETH_STATE_READY;
     
+    if (heth->Lock)
+    {
+        dip_D13();
+    }
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    __HAL_INSTRUMENT_UNLOCK(heth);
 
   }
   /* Frame transmitted */
@@ -989,7 +993,7 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     heth->State = HAL_ETH_STATE_READY;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    __HAL_INSTRUMENT_UNLOCK(heth);
   }
   
   /* Clear the interrupt flags */
@@ -1008,7 +1012,7 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     heth->State = HAL_ETH_STATE_READY;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    __HAL_INSTRUMENT_UNLOCK(heth);
   }
 
   if (heth->Lock)
@@ -1089,6 +1093,7 @@ HAL_StatusTypeDef HAL_ETH_ReadPHYRegister(ETH_HandleTypeDef *heth, uint16_t PHYR
   /* Check the ETH peripheral state */
   if(heth->State == HAL_ETH_STATE_BUSY_RD)
   {
+    dip_D2();
     return HAL_BUSY;
   }
   /* Set ETH HAL State to BUSY_RD */
@@ -1121,7 +1126,8 @@ HAL_StatusTypeDef HAL_ETH_ReadPHYRegister(ETH_HandleTypeDef *heth, uint16_t PHYR
       heth->State= HAL_ETH_STATE_READY;
   
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
+      dip_D6();
+      __HAL_INSTRUMENT_UNLOCK(heth);
     
       return HAL_TIMEOUT;
     }
@@ -1196,7 +1202,7 @@ HAL_StatusTypeDef HAL_ETH_WritePHYRegister(ETH_HandleTypeDef *heth, uint16_t PHY
       heth->State= HAL_ETH_STATE_READY;
   
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
+      __HAL_INSTRUMENT_UNLOCK(heth);
     
       return HAL_TIMEOUT;
     }
@@ -1245,7 +1251,7 @@ HAL_StatusTypeDef HAL_ETH_WritePHYRegister(ETH_HandleTypeDef *heth, uint16_t PHY
 HAL_StatusTypeDef HAL_ETH_Start(ETH_HandleTypeDef *heth)
 {  
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -1272,7 +1278,7 @@ HAL_StatusTypeDef HAL_ETH_Start(ETH_HandleTypeDef *heth)
   __DMB();
 
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;
@@ -1287,7 +1293,7 @@ HAL_StatusTypeDef HAL_ETH_Start(ETH_HandleTypeDef *heth)
 HAL_StatusTypeDef HAL_ETH_Stop(ETH_HandleTypeDef *heth)
 {  
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -1311,7 +1317,7 @@ HAL_StatusTypeDef HAL_ETH_Stop(ETH_HandleTypeDef *heth)
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;
@@ -1329,7 +1335,7 @@ HAL_StatusTypeDef HAL_ETH_ConfigMAC(ETH_HandleTypeDef *heth, ETH_MACInitTypeDef 
   uint32_t tmpreg = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State= HAL_ETH_STATE_BUSY;
@@ -1478,7 +1484,7 @@ HAL_StatusTypeDef HAL_ETH_ConfigMAC(ETH_HandleTypeDef *heth, ETH_MACInitTypeDef 
   heth->State= HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   
   /* Return function status */
   return HAL_OK;  
@@ -1496,7 +1502,7 @@ HAL_StatusTypeDef HAL_ETH_ConfigDMA(ETH_HandleTypeDef *heth, ETH_DMAInitTypeDef 
   uint32_t tmpreg = 0;
 
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State= HAL_ETH_STATE_BUSY;
@@ -1564,7 +1570,7 @@ HAL_StatusTypeDef HAL_ETH_ConfigDMA(ETH_HandleTypeDef *heth, ETH_DMAInitTypeDef 
    heth->State= HAL_ETH_STATE_READY;
    
    /* Process Unlocked */
-   __HAL_UNLOCK(heth);
+   __HAL_INSTRUMENT_UNLOCK(heth);
    
    /* Return function status */
    return HAL_OK; 

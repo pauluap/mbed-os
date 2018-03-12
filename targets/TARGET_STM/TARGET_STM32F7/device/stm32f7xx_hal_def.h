@@ -117,8 +117,29 @@ typedef enum
                                     }                                      \
                                   }while (0U)
 
+  #define __HAL_INSTRUMENT_LOCK(__HANDLE__)                                \
+                                do{                                        \
+                                    if((__HANDLE__)->Lock == HAL_LOCKED)   \
+                                    {                                      \
+                                       dip_D11();                          \
+                                       return HAL_BUSY;                    \
+                                    }                                      \
+                                    else                                   \
+                                    {                                      \
+                                       proxy_D12(1);                       \
+                                       __NOP();                            \
+                                       (__HANDLE__)->Lock = HAL_LOCKED;    \
+                                    }                                      \
+                                  }while (0U)
+
   #define __HAL_UNLOCK(__HANDLE__)                                          \
                                   do{                                       \
+                                      (__HANDLE__)->Lock = HAL_UNLOCKED;    \
+                                    }while (0U)
+
+  #define __HAL_INSTRUMENT_UNLOCK(__HANDLE__)                               \
+                                  do{                                       \
+                                      proxy_D12(0);                         \
                                       (__HANDLE__)->Lock = HAL_UNLOCKED;    \
                                     }while (0U)
 #endif /* USE_RTOS */

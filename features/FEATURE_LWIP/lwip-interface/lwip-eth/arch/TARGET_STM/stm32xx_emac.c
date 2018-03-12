@@ -229,13 +229,12 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
     bufferoffset = 0;
 
     sys_mutex_lock(&tx_lock_mutex);
-    proxy_D10(1);
 
     /* copy frame from pbufs to driver buffers */
     for (q = p; q != NULL; q = q->next) {
         /* Is this buffer available? If not, goto error */
         if ((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET) {
-            dip_D7();
+            dip_D10();
             errval = ERR_USE;
             goto error;
         }
@@ -255,7 +254,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
 
             /* Check if the buffer is available */
             if ((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET) {
-                dip_D7();
+                dip_D10();
                 errval = ERR_USE;
                 goto error;
             }
@@ -278,10 +277,12 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
     SCB_CleanInvalidateDCache();
 
     /* Prepare transmit descriptors to give to DMA */
+    proxy_D7(1);
     if (HAL_OK != HAL_ETH_TransmitFrame(&EthHandle, framelength))
     {
         dip_D8();
     }
+    proxy_D7(0);
 
     errval = ERR_OK;
 
@@ -298,7 +299,6 @@ error:
         EthHandle.Instance->DMATPDR = 0;
     }
 
-    proxy_D10(0);
     sys_mutex_unlock(&tx_lock_mutex);
 
     return errval;
@@ -353,7 +353,6 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
                     (dmarxdesc->Status & ETH_DMARXDESC_AFM))
                 {
                     write_u32((EthHandle.Instance)->DMASR);
-                    dip_D5();
                     write_u32(dmarxdesc->Status);
                     write_u32(dmarxdesc->ControlBufferSize);
                     write_u32(dmarxdesc->Buffer1Addr);
@@ -381,7 +380,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     }
     else
     {
-        dip_D2();
+        dip_D5();
         write_u32(len);
     }
 
@@ -401,7 +400,6 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
-        dip_D6();
         /* Clear RBUS ETHERNET DMA flag */
         EthHandle.Instance->DMASR = ETH_DMASR_RBUS;
         /* Resume DMA reception */
@@ -423,8 +421,10 @@ static void _eth_arch_rx_task(void *arg)
     while (1) {
         uint32_t flags = osThreadFlagsWait(FLAG_RX, osFlagsWaitAny, osWaitForever);
         if (flags & FLAG_RX) {
+            proxy_D3(1);
             while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK)
             {
+                proxy_D3(0);
                 p = _eth_arch_low_level_input(netif);
                 if (p != NULL) {
                     if (netif->input(p, netif) != ERR_OK) {
@@ -433,6 +433,7 @@ static void _eth_arch_rx_task(void *arg)
                     }
                 }
             }
+            proxy_D3(0);
         }
     }
 }
