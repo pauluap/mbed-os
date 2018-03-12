@@ -18,6 +18,7 @@
 #define PHY_TASK_PRI            (osPriorityLow)
 #define PHY_TASK_WAIT           (200)
 #define ETH_ARCH_PHY_ADDRESS    (0x00)
+#define FLAG_RX                 (1)
 
 ETH_HandleTypeDef EthHandle;
 
@@ -41,8 +42,8 @@ __ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((secti
 #endif
 __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((section(".TxarraySection"))); /* Ethernet Transmit Buffer */
 
-static sys_sem_t rx_ready_sem;    /* receive ready semaphore */
 static sys_mutex_t tx_lock_mutex;
+static sys_thread_t rx_thread;
 
 /* function */
 static void _eth_arch_rx_task(void *arg);
@@ -74,7 +75,7 @@ void _eth_config_mac(ETH_HandleTypeDef *heth);
  */
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
 {
-    sys_sem_signal(&rx_ready_sem);
+    osThreadFlagsSet(rx_thread->id, FLAG_RX);
 }
 
 
@@ -420,13 +421,16 @@ static void _eth_arch_rx_task(void *arg)
     struct pbuf    *p;
 
     while (1) {
-        sys_arch_sem_wait(&rx_ready_sem, 0);
-        while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK) {
-            p = _eth_arch_low_level_input(netif);
-            if (p != NULL) {
-                if (netif->input(p, netif) != ERR_OK) {
-                    pbuf_free(p);
-                    p = NULL;
+        uint32_t flags = osThreadFlagsWait(FLAG_RX, osFlagsWaitAny, osWaitForever);
+        if (flags & FLAG_RX) {
+            while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK)
+            {
+                p = _eth_arch_low_level_input(netif);
+                if (p != NULL) {
+                    if (netif->input(p, netif) != ERR_OK) {
+                        pbuf_free(p);
+                        p = NULL;
+                    }
                 }
             }
         }
@@ -568,13 +572,11 @@ err_t eth_arch_enetif_init(struct netif *netif)
 
     netif->linkoutput = _eth_arch_low_level_output;
 
-    /* semaphore */
-    sys_sem_new(&rx_ready_sem, 0);
-
     sys_mutex_new(&tx_lock_mutex);
 
     /* task */
-    sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, 4*DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
+    rx_thread = sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, 4*DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
+
     sys_thread_new("stm32_emac_phy_thread", _eth_arch_phy_task, netif, 4*DEFAULT_THREAD_STACKSIZE, PHY_TASK_PRI);
 
     /* initialize the hardware */
