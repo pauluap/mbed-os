@@ -326,7 +326,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
 
     /* get received frame */
-    if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
+    if (HAL_ETH_GetReceivedFrame_IT(&EthHandle) != HAL_OK)
     {
         dip_D3();
         return NULL;
