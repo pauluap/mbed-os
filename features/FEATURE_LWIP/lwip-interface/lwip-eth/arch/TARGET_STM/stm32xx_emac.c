@@ -6,6 +6,7 @@
 #include <string.h>
 #include "cmsis_os2.h"
 #include "mbed_interface.h"
+#include "saleae.h"
 
 // Check for LWIP having Ethernet enabled
 #if LWIP_ARP || LWIP_ETHERNET
@@ -227,11 +228,13 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
     bufferoffset = 0;
 
     sys_mutex_lock(&tx_lock_mutex);
+    proxy_D10(1);
 
     /* copy frame from pbufs to driver buffers */
     for (q = p; q != NULL; q = q->next) {
         /* Is this buffer available? If not, goto error */
         if ((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET) {
+            dip_D7();
             errval = ERR_USE;
             goto error;
         }
@@ -251,6 +254,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
 
             /* Check if the buffer is available */
             if ((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET) {
+                dip_D7();
                 errval = ERR_USE;
                 goto error;
             }
@@ -273,7 +277,10 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
     SCB_CleanInvalidateDCache();
 
     /* Prepare transmit descriptors to give to DMA */
-    HAL_ETH_TransmitFrame(&EthHandle, framelength);
+    if (HAL_OK != HAL_ETH_TransmitFrame(&EthHandle, framelength))
+    {
+        dip_D8();
+    }
 
     errval = ERR_OK;
 
@@ -282,6 +289,7 @@ error:
     __DMB();
     /* When Transmit Underflow flag is set, clear it and issue a Transmit Poll Demand to resume transmission */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_TUS) != (uint32_t)RESET) {
+        dip_D9();
         /* Clear TUS ETHERNET DMA flag */
         EthHandle.Instance->DMASR = ETH_DMASR_TUS;
 
@@ -289,6 +297,7 @@ error:
         EthHandle.Instance->DMATPDR = 0;
     }
 
+    proxy_D10(0);
     sys_mutex_unlock(&tx_lock_mutex);
 
     return errval;
@@ -318,7 +327,10 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
     /* get received frame */
     if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
+    {
+        dip_D3();
         return NULL;
+    }
 
     /* Obtain the size of the packet and put it into the "len" variable. */
     len = EthHandle.RxFrameInfos.length;
@@ -327,6 +339,10 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     if (len > 0) {
         /* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
         p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+    }
+    else
+    {
+        dip_D4();
     }
 
     SCB_CleanInvalidateDCache();
@@ -340,6 +356,20 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
             /* Check if the length of bytes to copy in current pbuf is bigger than Rx buffer size*/
             while ((byteslefttocopy + bufferoffset) > ETH_RX_BUF_SIZE) {
+                if ((dmarxdesc->Status & ETH_DMARXDESC_AFM) ||
+                    (dmarxdesc->Status & ETH_DMARXDESC_AFM))
+                {
+                    write_u32((EthHandle.Instance)->DMASR);
+                    dip_D5();
+                    write_u32(dmarxdesc->Status);
+                    write_u32(dmarxdesc->ControlBufferSize);
+                    write_u32(dmarxdesc->Buffer1Addr);
+                    write_u32(dmarxdesc->Buffer2NextDescAddr);
+                    write_u32(dmarxdesc->ExtendedStatus);
+                    write_u32(dmarxdesc->Reserved1);
+                    write_u32(dmarxdesc->TimeStampLow);
+                    write_u32(dmarxdesc->TimeStampHigh);
+                }
                 /* Copy data to pbuf */
                 memcpy((uint8_t*)((uint8_t*)q->payload + payloadoffset), (uint8_t*)((uint8_t*)buffer + bufferoffset), (ETH_RX_BUF_SIZE - bufferoffset));
 
@@ -355,6 +385,11 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
             memcpy((uint8_t*)((uint8_t*)q->payload + payloadoffset), (uint8_t*)((uint8_t*)buffer + bufferoffset), byteslefttocopy);
             bufferoffset = bufferoffset + byteslefttocopy;
         }
+    }
+    else
+    {
+        dip_D2();
+        write_u32(len);
     }
 
     /* Release descriptors to DMA */
@@ -373,6 +408,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
+        dip_D6();
         /* Clear RBUS ETHERNET DMA flag */
         EthHandle.Instance->DMASR = ETH_DMASR_RBUS;
         /* Resume DMA reception */
@@ -393,6 +429,7 @@ static void _eth_arch_rx_task(void *arg)
 
     while (1) {
         sys_arch_sem_wait(&rx_ready_sem, 0);
+        proxy_D11(1);
         p = _eth_arch_low_level_input(netif);
         if (p != NULL) {
             if (netif->input(p, netif) != ERR_OK) {
@@ -400,6 +437,11 @@ static void _eth_arch_rx_task(void *arg)
                 p = NULL;
             }
         }
+        if ((0 == osSemaphoreGetCount(rx_ready_sem.id)) && (HAL_ETH_GetReceivedFrame(&EthHandle) == HAL_OK))
+        {
+            dip_D12();
+        }
+        proxy_D11(0);
     }
 }
 

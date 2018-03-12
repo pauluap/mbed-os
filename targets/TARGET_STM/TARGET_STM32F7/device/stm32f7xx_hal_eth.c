@@ -95,6 +95,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
+#include "saleae.h"
 
 /** @addtogroup STM32F7xx_HAL_Driver
   * @{
@@ -958,6 +959,7 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   */
 void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
 {
+  proxy_D0(1);
   /* Frame received */
   if (__HAL_ETH_DMA_GET_FLAG(heth, ETH_DMA_FLAG_R)) 
   {
@@ -1008,6 +1010,12 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     /* Process Unlocked */
     __HAL_UNLOCK(heth);
   }
+
+  if (heth->Lock)
+  {
+      dip_D1();
+  }
+  proxy_D0(0);
 }
 
 /**
