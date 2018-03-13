@@ -985,10 +985,6 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     __HAL_INSTRUMENT_UNLOCK(heth);
   }
 
-  if (heth->Lock)
-  {
-      dip_D1();
-  }
   proxy_D0(0);
 }
 

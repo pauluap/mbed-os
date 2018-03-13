@@ -44,6 +44,7 @@ __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((secti
 
 static sys_mutex_t tx_lock_mutex;
 static sys_thread_t rx_thread;
+static volatile bool rxtx_boom;
 
 /* function */
 static void _eth_arch_rx_task(void *arg);
@@ -143,6 +144,7 @@ static void _eth_arch_low_level_init(struct netif *netif)
 {
     MPU_Config();
 
+    rxtx_boom = false;
     /* Init ETH */
     uint8_t MACAddr[6];
     EthHandle.Instance = ETH;
@@ -278,10 +280,13 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
 
     /* Prepare transmit descriptors to give to DMA */
     proxy_D7(1);
+    if (rxtx_boom) { dip_D1(); }
+    rxtx_boom = true;
     if (HAL_OK != HAL_ETH_TransmitFrame(&EthHandle, framelength))
     {
         dip_D8();
     }
+    rxtx_boom = false;
     proxy_D7(0);
 
     errval = ERR_OK;
@@ -335,7 +340,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     }
     else
     {
-        dip_D4();
+        write_u32(0xDEAD);
     }
 
     SCB_CleanInvalidateDCache();
@@ -400,6 +405,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
+        dip_D4();
         /* Clear RBUS ETHERNET DMA flag */
         EthHandle.Instance->DMASR = ETH_DMASR_RBUS;
         /* Resume DMA reception */
@@ -422,8 +428,11 @@ static void _eth_arch_rx_task(void *arg)
         uint32_t flags = osThreadFlagsWait(FLAG_RX, osFlagsWaitAny, osWaitForever);
         if (flags & FLAG_RX) {
             proxy_D3(1);
+            if (rxtx_boom) { dip_D1(); }
+            rxtx_boom = true;
             while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK)
             {
+                rxtx_boom = false;
                 proxy_D3(0);
                 p = _eth_arch_low_level_input(netif);
                 if (p != NULL) {
@@ -433,6 +442,7 @@ static void _eth_arch_rx_task(void *arg)
                     }
                 }
             }
+            rxtx_boom = false;
             proxy_D3(0);
         }
     }
