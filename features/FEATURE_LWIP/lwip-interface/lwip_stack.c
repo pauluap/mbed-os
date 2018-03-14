@@ -1176,6 +1176,18 @@ static nsapi_error_t mbed_lwip_setsockopt(nsapi_stack_t *stack, nsapi_socket_t h
             return 0;
 #endif
 
+        case NSAPI_NODELAY:
+            if (optlen != sizeof(int) || s->conn->type != NETCONN_TCP) {
+                return NSAPI_ERROR_UNSUPPORTED;
+            }
+
+            if (*(int *)optval) {
+                tcp_nagle_disable(s->conn->pcb.tcp);
+            } else {
+                tcp_nagle_enable(s->conn->pcb.tcp);
+            }
+            return 0;
+
         case NSAPI_REUSEADDR:
             if (optlen != sizeof(int)) {
                 return NSAPI_ERROR_UNSUPPORTED;
