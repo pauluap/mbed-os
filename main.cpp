@@ -13,7 +13,7 @@ TCPServer srv;
 
 const uint16_t MB_QUERY_SIZE = 12;
 const uint16_t MB_RESP_SIZE = 153;
-
+static volatile uint8_t dummy[72250];
 
 struct Client
 {
@@ -141,6 +141,7 @@ void srv_raise()
 }
 
 int main() {
+    dummy[0] = 1;
     uint8_t idx = 0;
     TCPSocket sock;
     TCPSocket* psock;
