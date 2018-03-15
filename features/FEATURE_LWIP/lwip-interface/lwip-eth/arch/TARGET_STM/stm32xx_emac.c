@@ -20,7 +20,7 @@
 #define ETH_ARCH_PHY_ADDRESS    (0x00)
 #define FLAG_RX                 (1)
 
-static volatile uint8_t dummy[250];
+static volatile uint8_t dummy[28];
 ETH_HandleTypeDef EthHandle;
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
