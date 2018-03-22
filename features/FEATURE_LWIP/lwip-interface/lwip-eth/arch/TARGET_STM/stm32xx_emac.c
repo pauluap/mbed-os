@@ -25,22 +25,22 @@ ETH_HandleTypeDef EthHandle;
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __attribute__((section(".RxDecripSection")));/* Ethernet Rx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __ALIGN_END;/* Ethernet Rx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __attribute__((section(".TxDescripSection")));/* Ethernet Tx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __ALIGN_END;/* Ethernet Tx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((section(".RxarraySection"))); /* Ethernet Receive Buffer */
+__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethernet Receive Buffer */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((section(".TxarraySection"))); /* Ethernet Transmit Buffer */
+__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
 
 static sys_mutex_t tx_lock_mutex;
 static sys_thread_t rx_thread;
@@ -100,8 +100,8 @@ static void MPU_Config(void)
 
   /* Configure the MPU as Normal Non Cacheable for Ethernet Buffers in the SRAM2 */
   MPU_InitStruct.Enable = MPU_REGION_ENABLE;
-  MPU_InitStruct.BaseAddress = 0x2007C000;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
+  MPU_InitStruct.BaseAddress = 0x20000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_512MB;
   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
@@ -113,20 +113,20 @@ static void MPU_Config(void)
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
-  /* Configure the MPU as Device for Ethernet Descriptors in the SRAM2 */
-  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
-  MPU_InitStruct.BaseAddress = 0x2007C000;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_256B;
-  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
-  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
-  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
-  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
-  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
-  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
-  MPU_InitStruct.SubRegionDisable = 0x00;
-  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  ///* Configure the MPU as Device for Ethernet Descriptors in the SRAM2 */
+  //MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  //MPU_InitStruct.BaseAddress = 0x2007C000;
+  //MPU_InitStruct.Size = MPU_REGION_SIZE_256B;
+  //MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  //MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+  //MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  //MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  //MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  //MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  //MPU_InitStruct.SubRegionDisable = 0x00;
+  //MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
 
-  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  //HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
   /* Enable the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
