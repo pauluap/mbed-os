@@ -1,7 +1,8 @@
-To aid in replication of the F769NI Ethernet issues on the Discovery board, this
-branch provides several things to assist.
 
-There are defines in features/FEATURE_LWIP/lwip-interface/lwip-eth/arch/TARGET_STM/stm32xx_emac.c
+To aid in replication of the F769NI Ethernet issues on the Discovery board.
+This branch provides several things to assist.
+
+There are defines in `features/FEATURE_LWIP/lwip-interface/lwip-eth/arch/TARGET_STM/stm32xx_emac.c`
 `F769_ETH_CONFIG_SRAM1_FAIL`, `F769_ETH_CONFIG_SRAM1_OK`, `F769_ETH_CONFIG_SRAM2`
 
 The version of GCC_ARM used is
@@ -51,12 +52,25 @@ To generate ethernet pressure, the modpoll tool (http://www.modbusdriver.com/mod
 The command is
 `modpoll <ip-address> -r 1 -c 72 -t 4:hex -l 0`
 
-Running two in parallel should cause a failure to occur faster, but in my testing, a single client would still fail within five minutes.
+Running four in parallel should cause a failure to occur within five minutes, although I have seen a single client eventually fail.
 
 The expected failure result is deafness, the system stops responding to Ethernet traffic, but will periodically send out ARP queries.
 
-Symptoms can be further seen if Wireshark is used to monitor, the incidence of retransmissions or other network errors is much higher.
+If Wireshark is used to monitor, the failure can be captured as well as the eventual deafness. An example failure result is:
+![image](https://user-images.githubusercontent.com/573966/37927913-14e799be-30f0-11e8-8d02-a0586cfd24ae.png)
+![image](https://user-images.githubusercontent.com/573966/37927976-3e44322c-30f0-11e8-952e-6980b1d1a60b.png)
+
+
 
 For those with logic analyzers, the pin numbers in the source is in accordance to how I have connected my analyzer, not the board pins.  Sorry.  The mapping is mirrored - D15 <-> D0, D14 <-> D1, ... D0 <-> D15.
 
 A discernible difference between the failing and non-failing cases is the behavior of the `RxBufUnavailable` signal.  In the passing cases, the signal is never asserted whereas in the failing cases, it is asserted on the very first response and then is continually asserted until failure occurs.
+An example of the failing case is:
+![image](https://user-images.githubusercontent.com/573966/37927780-dadf3358-30ef-11e8-8880-6517e5ae550a.png)
+And the point of actual failure:
+![image](https://user-images.githubusercontent.com/573966/37927864-fd8284b4-30ef-11e8-960a-6513f7ea4181.png)
+
+Whereas the non-failing case looks like this:
+![image](https://user-images.githubusercontent.com/573966/37927170-31df4852-30ee-11e8-9b65-abf2e07c7517.png)
+
+
