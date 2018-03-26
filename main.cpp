@@ -13,7 +13,7 @@ TCPServer srv;
 
 const uint16_t MB_QUERY_SIZE = 12;
 const uint16_t MB_RESP_SIZE = 153;
-static volatile uint8_t dummy[72250];
+static volatile uint8_t dummy[72240];
 
 struct Client
 {

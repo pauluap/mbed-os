@@ -20,28 +20,41 @@
 #define ETH_ARCH_PHY_ADDRESS    (0x00)
 #define FLAG_RX                 (1)
 
-static volatile uint8_t dummy[28];
+#define F769_ETH_CONFIG_SRAM1_FAIL  1
+#define F769_ETH_CONFIG_SRAM1_OK    2
+#define F769_ETH_CONFIG_SRAM2       3
+
+#define F769_ETH_CONFIG F769_ETH_CONFIG_SRAM2
+
+#ifndef F769_ETH_CONFIG
+#    define F769_ETH_CONFIG F769_ETH_CONFIG_SRAM1_FAIL
+#endif
+
+#if (F769_ETH_CONFIG == F769_ETH_CONFIG_SRAM1_FAIL)
+#    define F769_ETH_CONFIG_PLACEMENT  1
+#    define F769_ETH_CONFIG_DUMMY_SIZE 1
+#elif (F769_ETH_CONFIG == F769_ETH_CONFIG_SRAM1_OK)
+#    define F769_ETH_CONFIG_PLACEMENT  1
+#    define F769_ETH_CONFIG_DUMMY_SIZE 44
+#elif (F769_ETH_CONFIG == F769_ETH_CONFIG_SRAM2)
+#    define F769_ETH_CONFIG_PLACEMENT  2
+#    define F769_ETH_CONFIG_DUMMY_SIZE 1
+#endif
+
+static volatile uint8_t dummy[F769_ETH_CONFIG_DUMMY_SIZE];
 ETH_HandleTypeDef EthHandle;
 
-#if defined (__ICCARM__)   /*!< IAR Compiler */
-  #pragma data_alignment=4
-#endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __ALIGN_END;/* Ethernet Rx DMA Descriptor */
-
-#if defined (__ICCARM__)   /*!< IAR Compiler */
-  #pragma data_alignment=4
-#endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __ALIGN_END;/* Ethernet Tx DMA Descriptor */
-
-#if defined (__ICCARM__)   /*!< IAR Compiler */
-  #pragma data_alignment=4
-#endif
+#if (F769_ETH_CONFIG_PLACEMENT == 2)
+__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB]  __attribute__((section(".RxDecripSection")));  /* Ethernet Rx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB]  __attribute__((section(".TxDescripSection"))); /* Ethernet Tx DMA Descriptor */
+__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((section(".RxarraySection")));   /* Ethernet Receive Buffer */
+__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((section(".TxarraySection")));   /* Ethernet Transmit Buffer */
+#else
+__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB]  __ALIGN_END; /* Ethernet Rx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB]  __ALIGN_END; /* Ethernet Tx DMA Descriptor */
 __ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethernet Receive Buffer */
-
-#if defined (__ICCARM__)   /*!< IAR Compiler */
-  #pragma data_alignment=4
-#endif
 __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
+#endif
 
 static sys_mutex_t tx_lock_mutex;
 static sys_thread_t rx_thread;

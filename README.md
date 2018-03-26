@@ -1,35 +1,62 @@
-[![Mbed OS][mbed-os-logo]][mbed-os-link]
+To aid in replication of the F769NI Ethernet issues on the Discovery board, this
+branch provides several things to assist.
 
-[![Build status release][mbed-travis-release-svg]][mbed-travis-release] 
-[![Build status master][mbed-travis-master-svg]][mbed-travis-master] 
-[![Tools coverage status][mbed-coveralls-tools-svg]][mbed-coveralls-tools] 
-[![PR progress][mbed-waffle-svg]][mbed-waffle] 
+There are defines in features/FEATURE_LWIP/lwip-interface/lwip-eth/arch/TARGET_STM/stm32xx_emac.c
+`F769_ETH_CONFIG_SRAM1_FAIL`, `F769_ETH_CONFIG_SRAM1_OK`, `F769_ETH_CONFIG_SRAM2`
 
-[mbed-os-logo]: logo.png
-[mbed-os-link]: https://www.mbed.com/en/platform/mbed-os/
-[mbed-travis-master]: https://travis-ci.org/ARMmbed/mbed-os
-[mbed-travis-master-svg]: https://travis-ci.org/ARMmbed/mbed-os.svg?branch=master
-[mbed-travis-release]: https://travis-ci.org/ARMmbed/mbed-os/branches
-[mbed-travis-release-svg]: https://travis-ci.org/ARMmbed/mbed-os.svg?branch=latest
-[mbed-coveralls-tools]: https://coveralls.io/github/ARMmbed/mbed-os?branch=master
-[mbed-coveralls-tools-svg]: https://coveralls.io/repos/github/ARMmbed/mbed-os/badge.svg?branch=master
-[mbed-waffle]: https://waffle.io/ARMmbed/mbed-os
-[mbed-waffle-svg]: https://badge.waffle.io/ARMmbed/mbed-os.svg?columns=all
+The version of GCC_ARM used is
+`arm-none-eabi-gcc (GNU Tools for ARM Embedded Processors 6-2017-q1-update) 6.3.1 20170215 (release) [ARM/embedded-6-branch revision 245512]`
 
-Arm Mbed OS is an open source embedded operating system designed specifically for the "things" in the Internet of Things. It includes all the features you need to develop a connected product based on an Arm Cortex-M microcontroller, including security, connectivity, an RTOS and drivers for sensors and I/O devices.
+While the various mbed_lib.json files have modified such that a generated `mbed_config.h` file will match, it is recommended that the `mbed_config.h` and `Makefile` provided in this branch be used because:
+- Regeneration will create a different timestamp, no md5 match confirmation
+- the Makefile has been modified to:
+  - Move main.cpp and stm32xx_emac.c to the end of the link order to make the emac memory object location easier to manipulate
+  - Build with the C++11 standard with -O3 optimizations
+  - Generate a map file
 
-Mbed OS provides a platform that includes:
-* Security foundations.
-* Cloud management services.
-* Drivers for sensors, I/O devices and connectivity. 
+The MD5 of the bin files built using the three test cases are:
 
-## Release notes
-The [release notes](https://os.mbed.com/releases) detail the current release. You can also find information about previous versions.
 
-## Getting started for developers
- 
-We have a [developer website](https://os.mbed.com) for asking questions, engaging with others, finding information on boards and components, using an online IDE and compiler, reading the documentation and learning about what's new and what's coming next in Mbed OS.
+```
+F769_ETH_CONFIG_SRAM1_FAIL
+                0x000000002001fff4                DMARxDscrTab
+                0x0000000020020074                EthHandle
+                0x00000000200200bc                Rx_Buff
+                0x000000002002188c                Tx_Buff
+                0x000000002002305c                DMATxDscrTab
+7400951a73b32755d84ffe77c9d31662  BUILD/mbed-os.bin
+```
 
-## Getting started for contributors
- 
-We also have a [contributing and publishing guide](https://os.mbed.com/contributing/) that covers licensing, contributor agreements and style guidelines.
+```
+F769_ETH_CONFIG_SRAM1_OK
+                0x000000002002001c                DMARxDscrTab
+                0x000000002002009c                EthHandle
+                0x00000000200200e4                Rx_Buff
+                0x00000000200218b4                Tx_Buff
+                0x0000000020023084                DMATxDscrTab
+fe736707a863c27ec9773844119ffd25  BUILD/mbed-os.bin
+```
+
+```
+F769_ETH_CONFIG_SRAM2
+                0x000000002007c000                DMARxDscrTab
+                0x000000002007c080                DMATxDscrTab
+                0x000000002007c100                Rx_Buff
+                0x000000002007d8d0                Tx_Buff
+270baf05b6aad3fc3b3708f050492dda  BUILD/mbed-os.bin
+```
+
+To generate ethernet pressure, the modpoll tool (http://www.modbusdriver.com/modpoll.html) is recommended.  The Windows version works, but the Linux version generates higher throughput.
+
+The command is
+`modpoll <ip-address> -r 1 -c 72 -t 4:hex -l 0`
+
+Running two in parallel should cause a failure to occur faster, but in my testing, a single client would still fail within five minutes.
+
+The expected failure result is deafness, the system stops responding to Ethernet traffic, but will periodically send out ARP queries.
+
+Symptoms can be further seen if Wireshark is used to monitor, the incidence of retransmissions or other network errors is much higher.
+
+For those with logic analyzers, the pin numbers in the source is in accordance to how I have connected my analyzer, not the board pins.  Sorry.  The mapping is mirrored - D15 <-> D0, D14 <-> D1, ... D0 <-> D15.
+
+A discernible difference between the failing and non-failing cases is the behavior of the `RxBufUnavailable` signal.  In the passing cases, the signal is never asserted whereas in the failing cases, it is asserted on the very first response and then is continually asserted until failure occurs.
