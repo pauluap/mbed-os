@@ -95,6 +95,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
+#include "saleae.h"
 
 /** @addtogroup STM32F7xx_HAL_Driver
   * @{
@@ -122,6 +123,8 @@
   */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+static volatile int is_tx;
+static volatile int is_rx;
 /* Private function prototypes -----------------------------------------------*/
 /** @defgroup ETH_Private_Functions ETH Private Functions
   * @{
@@ -176,6 +179,9 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   uint32_t tickstart = 0;
   uint32_t err = ETH_SUCCESS;
   
+  is_tx = 0;
+  is_rx = 0;
+
   /* Check the ETH peripheral state */
   if(heth == NULL)
   {
@@ -665,10 +671,13 @@ __weak void HAL_ETH_MspDeInit(ETH_HandleTypeDef *heth)
   */
 HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameLength)
 {
+  if (is_rx) { dip_D5(); }
+  is_tx = 1;
+  proxy_D4(1);
   uint32_t bufcount = 0, size = 0, i = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set the ETH peripheral state to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -679,8 +688,9 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
     heth->State = HAL_ETH_STATE_READY;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
-    
+    is_tx = 0;
+    proxy_D4(0);
+    __HAL_INSTRUMENT_UNLOCK(heth);
     return  HAL_ERROR;                                    
   }  
   
@@ -691,8 +701,9 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
     heth->State = HAL_ETH_STATE_BUSY_TX;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
-    
+    is_tx = 0;
+    proxy_D4(0);
+    __HAL_INSTRUMENT_UNLOCK(heth);
     return HAL_ERROR;
   }
   
@@ -777,8 +788,9 @@ HAL_StatusTypeDef HAL_ETH_TransmitFrame(ETH_HandleTypeDef *heth, uint32_t FrameL
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
-  
+  is_tx = 0;
+  proxy_D4(0);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   /* Return function status */
   return HAL_OK;
 }
@@ -874,7 +886,10 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   uint32_t descriptorscancounter = 0;
   
   /* Process Locked */
-  __HAL_LOCK(heth);
+  if (is_tx) { dip_D5(); }
+  is_rx = 1;
+  proxy_D3(1);
+  __HAL_INSTRUMENT_LOCK(heth);
   
   /* Set ETH HAL State to BUSY */
   heth->State = HAL_ETH_STATE_BUSY;
@@ -931,8 +946,9 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
       heth->State = HAL_ETH_STATE_READY;
       
       /* Process Unlocked */
-      __HAL_UNLOCK(heth);
-  
+      is_rx = 0;
+      proxy_D3(0);
+      __HAL_INSTRUMENT_UNLOCK(heth);
       /* Return function status */
       return HAL_OK;
     }
@@ -942,8 +958,9 @@ HAL_StatusTypeDef HAL_ETH_GetReceivedFrame_IT(ETH_HandleTypeDef *heth)
   heth->State = HAL_ETH_STATE_READY;
   
   /* Process Unlocked */
-  __HAL_UNLOCK(heth);
-  
+  is_rx = 0;
+  proxy_D3(0);
+  __HAL_INSTRUMENT_UNLOCK(heth);
   /* Return function status */
   return HAL_ERROR;
 }
@@ -969,7 +986,11 @@ void HAL_ETH_IRQHandler(ETH_HandleTypeDef *heth)
     heth->State = HAL_ETH_STATE_READY;
     
     /* Process Unlocked */
-    __HAL_UNLOCK(heth);
+    if (heth->Lock == HAL_LOCKED)
+    {
+        dip_D1();
+    }
+    //__HAL_UNLOCK(heth);
 
   }
   /* Frame transmitted */
