@@ -217,6 +217,7 @@ typedef enum nsapi_socket_option {
     NSAPI_RCVBUF,            /*!< Sets recv buffer size */
     NSAPI_ADD_MEMBERSHIP,    /*!< Add membership to multicast address */
     NSAPI_DROP_MEMBERSHIP,   /*!< Drop membership to multicast address */
+    NSAPI_NODELAY            /*!< Disable Nagle's algorithm */
 } nsapi_socket_option_t;
 
 /** Supported IP protocol versions of IP stack

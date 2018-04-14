@@ -6,6 +6,7 @@
 #include <string.h>
 #include "cmsis_os2.h"
 #include "mbed_interface.h"
+#include "saleae.h"
 
 // Check for LWIP having Ethernet enabled
 #if LWIP_ARP || LWIP_ETHERNET
@@ -17,31 +18,32 @@
 #define PHY_TASK_PRI            (osPriorityLow)
 #define PHY_TASK_WAIT           (200)
 #define ETH_ARCH_PHY_ADDRESS    (0x00)
+#define FLAG_RX                 (1)
 
 ETH_HandleTypeDef EthHandle;
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __ALIGN_END; /* Ethernet Rx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMARxDscrTab[ETH_RXBUFNB] __attribute__((section(".RxDecripSection")));/* Ethernet Rx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __ALIGN_END; /* Ethernet Tx DMA Descriptor */
+__ALIGN_BEGIN ETH_DMADescTypeDef DMATxDscrTab[ETH_TXBUFNB] __attribute__((section(".TxDescripSection")));/* Ethernet Tx DMA Descriptor */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __ALIGN_END; /* Ethernet Receive Buffer */
+__ALIGN_BEGIN uint8_t Rx_Buff[ETH_RXBUFNB][ETH_RX_BUF_SIZE] __attribute__((section(".RxarraySection"))); /* Ethernet Receive Buffer */
 
 #if defined (__ICCARM__)   /*!< IAR Compiler */
   #pragma data_alignment=4
 #endif
-__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethernet Transmit Buffer */
+__ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __attribute__((section(".TxarraySection"))); /* Ethernet Transmit Buffer */
 
-static sys_sem_t rx_ready_sem;    /* receive ready semaphore */
 static sys_mutex_t tx_lock_mutex;
+static sys_thread_t rx_thread;
 
 /* function */
 static void _eth_arch_rx_task(void *arg);
@@ -73,7 +75,7 @@ void _eth_config_mac(ETH_HandleTypeDef *heth);
  */
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
 {
-    sys_sem_signal(&rx_ready_sem);
+    osThreadFlagsSet(rx_thread->id, FLAG_RX);
 }
 
 
@@ -88,6 +90,46 @@ void ETH_IRQHandler(void)
     HAL_ETH_IRQHandler(&EthHandle);
 }
 
+static void MPU_Config(void)
+{
+  MPU_Region_InitTypeDef MPU_InitStruct;
+
+  /* Disable the MPU */
+  HAL_MPU_Disable();
+
+  /* Configure the MPU as Normal Non Cacheable for Ethernet Buffers in the SRAM2 */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.BaseAddress = 0x2007C000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_16KB;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.SubRegionDisable = 0x00;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /* Configure the MPU as Device for Ethernet Descriptors in the SRAM2 */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.BaseAddress = 0x2007C000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_256B;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  MPU_InitStruct.SubRegionDisable = 0x00;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /* Enable the MPU */
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+}
 
 
 /**
@@ -99,6 +141,8 @@ void ETH_IRQHandler(void)
  */
 static void _eth_arch_low_level_init(struct netif *netif)
 {
+    MPU_Config();
+
     /* Init ETH */
     uint8_t MACAddr[6];
     EthHandle.Instance = ETH;
@@ -193,6 +237,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
             errval = ERR_USE;
             goto error;
         }
+        __DMB();
 
         /* Get bytes in current lwIP buffer */
         byteslefttocopy = q->len;
@@ -211,6 +256,7 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
                 errval = ERR_USE;
                 goto error;
             }
+            __DMB();
 
             buffer = (uint8_t*)(DmaTxDesc->Buffer1Addr);
 
@@ -226,13 +272,18 @@ static err_t _eth_arch_low_level_output(struct netif *netif, struct pbuf *p)
         framelength = framelength + byteslefttocopy;
     }
 
+    SCB_CleanInvalidateDCache();
+
     /* Prepare transmit descriptors to give to DMA */
-    HAL_ETH_TransmitFrame(&EthHandle, framelength);
+    if (HAL_OK != HAL_ETH_TransmitFrame(&EthHandle, framelength))
+    {
+    }
 
     errval = ERR_OK;
 
 error:
 
+    __DMB();
     /* When Transmit Underflow flag is set, clear it and issue a Transmit Poll Demand to resume transmission */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_TUS) != (uint32_t)RESET) {
         /* Clear TUS ETHERNET DMA flag */
@@ -268,11 +319,6 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     uint32_t byteslefttocopy = 0;
     uint32_t i = 0;
 
-
-    /* get received frame */
-    if (HAL_ETH_GetReceivedFrame(&EthHandle) != HAL_OK)
-        return NULL;
-
     /* Obtain the size of the packet and put it into the "len" variable. */
     len = EthHandle.RxFrameInfos.length;
     buffer = (uint8_t*)EthHandle.RxFrameInfos.buffer;
@@ -281,6 +327,12 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
         /* We allocate a pbuf chain of pbufs from the Lwip buffer pool */
         p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
     }
+    else
+    {
+        write_u32(0xDEAD);
+    }
+
+    SCB_CleanInvalidateDCache();
 
     if (p != NULL) {
         dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
@@ -291,6 +343,19 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
 
             /* Check if the length of bytes to copy in current pbuf is bigger than Rx buffer size*/
             while ((byteslefttocopy + bufferoffset) > ETH_RX_BUF_SIZE) {
+                if ((dmarxdesc->Status & ETH_DMARXDESC_AFM) ||
+                    (dmarxdesc->Status & ETH_DMARXDESC_AFM))
+                {
+                    write_u32((EthHandle.Instance)->DMASR);
+                    write_u32(dmarxdesc->Status);
+                    write_u32(dmarxdesc->ControlBufferSize);
+                    write_u32(dmarxdesc->Buffer1Addr);
+                    write_u32(dmarxdesc->Buffer2NextDescAddr);
+                    write_u32(dmarxdesc->ExtendedStatus);
+                    write_u32(dmarxdesc->Reserved1);
+                    write_u32(dmarxdesc->TimeStampLow);
+                    write_u32(dmarxdesc->TimeStampHigh);
+                }
                 /* Copy data to pbuf */
                 memcpy((uint8_t*)((uint8_t*)q->payload + payloadoffset), (uint8_t*)((uint8_t*)buffer + bufferoffset), (ETH_RX_BUF_SIZE - bufferoffset));
 
@@ -307,12 +372,17 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
             bufferoffset = bufferoffset + byteslefttocopy;
         }
     }
+    else
+    {
+        write_u32(len);
+    }
 
     /* Release descriptors to DMA */
     /* Point to first descriptor */
     dmarxdesc = EthHandle.RxFrameInfos.FSRxDesc;
     /* Set Own bit in Rx descriptors: gives the buffers back to DMA */
     for (i = 0; i < EthHandle.RxFrameInfos.SegCount; i++) {
+        __DMB();
         dmarxdesc->Status |= ETH_DMARXDESC_OWN;
         dmarxdesc = (ETH_DMADescTypeDef*)(dmarxdesc->Buffer2NextDescAddr);
     }
@@ -320,6 +390,7 @@ static struct pbuf * _eth_arch_low_level_input(struct netif *netif)
     /* Clear Segment_Count */
     EthHandle.RxFrameInfos.SegCount = 0;
 
+    __DMB();
     /* When Rx Buffer unavailable flag is set: clear it and resume reception */
     if ((EthHandle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET) {
         /* Clear RBUS ETHERNET DMA flag */
@@ -341,12 +412,17 @@ static void _eth_arch_rx_task(void *arg)
     struct pbuf    *p;
 
     while (1) {
-        sys_arch_sem_wait(&rx_ready_sem, 0);
-        p = _eth_arch_low_level_input(netif);
-        if (p != NULL) {
-            if (netif->input(p, netif) != ERR_OK) {
-                pbuf_free(p);
-                p = NULL;
+        uint32_t flags = osThreadFlagsWait(FLAG_RX, osFlagsWaitAny, osWaitForever);
+        if (flags & FLAG_RX) {
+            while (HAL_ETH_GetReceivedFrame_IT(&EthHandle) == HAL_OK)
+            {
+                p = _eth_arch_low_level_input(netif);
+                if (p != NULL) {
+                    if (netif->input(p, netif) != ERR_OK) {
+                        pbuf_free(p);
+                        p = NULL;
+                    }
+                }
             }
         }
     }
@@ -487,14 +563,12 @@ err_t eth_arch_enetif_init(struct netif *netif)
 
     netif->linkoutput = _eth_arch_low_level_output;
 
-    /* semaphore */
-    sys_sem_new(&rx_ready_sem, 0);
-
     sys_mutex_new(&tx_lock_mutex);
 
     /* task */
-    sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
-    sys_thread_new("stm32_emac_phy_thread", _eth_arch_phy_task, netif, DEFAULT_THREAD_STACKSIZE, PHY_TASK_PRI);
+    rx_thread = sys_thread_new("stm32_emac_rx_thread", _eth_arch_rx_task, netif, 4*DEFAULT_THREAD_STACKSIZE, RECV_TASK_PRI);
+
+    sys_thread_new("stm32_emac_phy_thread", _eth_arch_phy_task, netif, 4*DEFAULT_THREAD_STACKSIZE, PHY_TASK_PRI);
 
     /* initialize the hardware */
     _eth_arch_low_level_init(netif);
