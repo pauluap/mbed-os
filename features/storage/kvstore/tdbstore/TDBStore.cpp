@@ -399,6 +399,10 @@ int TDBStore::set_start(set_handle_t *handle, const char *key, size_t final_data
     inc_set_handle_t *ih;
     bool need_gc = false;
 
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
+
     if (!is_valid_key(key)) {
         return MBED_ERROR_INVALID_ARGUMENT;
     }
@@ -520,6 +524,10 @@ int TDBStore::set_add_data(set_handle_t handle, const void *value_data, size_t d
     inc_set_handle_t *ih;
     bool need_gc = false;
 
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
+
     if (handle != _inc_set_handle) {
         return MBED_ERROR_INVALID_ARGUMENT;
     }
@@ -571,6 +579,10 @@ int TDBStore::set_finalize(set_handle_t handle)
     ram_table_entry_t *entry;
     bool need_gc = false;
     uint32_t actual_data_size, hash, flags, next_offset;
+
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
 
     if (handle != _inc_set_handle) {
         return MBED_ERROR_INVALID_ARGUMENT;
@@ -665,6 +677,10 @@ int TDBStore::set(const char *key, const void *buffer, size_t size, uint32_t cre
     int ret;
     set_handle_t handle;
 
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
+
     // Don't wait till we get to set_add_data to catch this
     if (!buffer && size) {
         return MBED_ERROR_INVALID_ARGUMENT;
@@ -696,6 +712,10 @@ int TDBStore::get(const char *key, void *buffer, size_t buffer_size, size_t *act
     uint32_t bd_offset, next_bd_offset;
     uint32_t flags, hash, ram_table_ind;
 
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
+
     if (!is_valid_key(key)) {
         return MBED_ERROR_INVALID_ARGUMENT;
     }
@@ -726,6 +746,10 @@ int TDBStore::get_info(const char *key, info_t *info)
     uint32_t bd_offset, next_bd_offset;
     uint32_t flags, hash, ram_table_ind;
     uint32_t actual_data_size;
+
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
 
     if (!is_valid_key(key)) {
         return MBED_ERROR_INVALID_ARGUMENT;
@@ -1019,7 +1043,11 @@ int TDBStore::init()
     _size = (size_t) -1;
 
     _buff_bd = new BufferedBlockDevice(_bd);
-    _buff_bd->init();
+    if (_buff_bd->init())
+    {
+        ret = MBED_ERROR_INITIALIZATION_FAILED;
+        goto init_fail;
+    }
 
     // Underlying BD must have flash attributes, i.e. have an erase value
     if (_bd->get_erase_value() == -1) {
@@ -1138,6 +1166,15 @@ int TDBStore::init()
 
 end:
     _is_initialized = true;
+    _mutex.unlock();
+    return ret;
+
+init_fail:
+    delete[] ram_table;
+    _ram_table = nullptr;
+    delete _buff_bd;
+    _buff_bd = nullptr;
+    _is_initialized = false;
     _mutex.unlock();
     return ret;
 }
@@ -1329,6 +1366,10 @@ int TDBStore::reserved_data_set(const void *reserved_data, size_t reserved_data_
     reserved_trailer_t trailer;
     int os_ret, ret = MBED_SUCCESS;
 
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
+
     if (reserved_data_buf_size > RESERVED_AREA_SIZE) {
         return MBED_ERROR_INVALID_SIZE;
     }
@@ -1378,6 +1419,10 @@ int TDBStore::do_reserved_data_get(void *reserved_data, size_t reserved_data_buf
     uint32_t crc = initial_crc;
     uint32_t offset;
     uint8_t blank = _buff_bd->get_erase_value();
+
+    if (!_is_initialized) {
+        return MBED_ERROR_NOT_READY;
+    }
 
     ret = read_area(_active_area, RESERVED_AREA_SIZE, sizeof(trailer), &trailer);
     if (ret) {
